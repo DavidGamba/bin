@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+use strict;
+
+my %screen_sessions = ();
+my @cmd = ( 'screen', '-ls' );
+open OUT, '-|', @cmd or die "couldn't execute cmd: $!\n";
+while (<OUT>) {
+    next unless (m{\s+(\S+)\s+\((.*)\)});
+    my $session = $1;
+    my $state   = $2;
+    push( @{ $screen_sessions{'Detached'} }, $session )
+        if ( $state =~ m{detached}i );
+    push( @{ $screen_sessions{'Attached'} }, $session )
+        if ( $state =~ m{attached}i );
+}
+foreach my $session ( sort @{ $screen_sessions{'Detached'} } ) {
+    exec('screen', '-r', $session);
+}
+my $count = 0;
+foreach my $session ( sort @{ $screen_sessions{'Attached'} } ) {
+    print "$count: $session (Attached)\n";
+    $count++;
+}

@@ -1,0 +1,171 @@
+#!/usr/bin/perl -w
+use strict;
+use diagnostics;
+use Pod::Usage;
+use Env qw( HOME );
+use Getopt::Long
+    qw( :config bundling no_ignore_case );
+
+my ($opt_help, $opt_man, $priority, $long, $complete);
+GetOptions(
+    'h|help|?' => \$opt_help,
+    'man'      => \$opt_man,
+    'p=i'      => \$priority,
+    'l'        => \$long,
+    'c'        => \$complete,
+);
+
+pod2usage(-verbose => 0) if ($opt_help);
+pod2usage(-verbose => 3) if ($opt_man);
+my $c        = shift;
+$c ||= 'ls';
+my $commands = qr/(?:add|ls|cm|rm|edit)/;
+
+my $dir = "$HOME/.todo";
+mkdir $dir unless -e $dir;
+chdir $dir;
+if ($c eq 'ls')
+{
+    my @tasks = get_tasks($complete);
+    @tasks = grep { /^(\d+)-\d+\./; $1 <= $priority } @tasks
+        if ($priority);
+    my $regex = shift;
+    foreach my $task (@tasks)
+    {
+        my $name;
+        $name = "$dir/" if ($long);
+        $name .= "$task ";
+        open my $in, '<', "$dir/$task"
+            or warn "couldn't open $dir/$task $!\n";
+        my $subject = <$in>;
+        print "$name $subject\n" if(!$regex or $subject =~ /$regex/);
+        close $in;
+    }
+}
+elsif ($c eq 'add')
+{
+    my $i = get_next_free_number(get_tasks());
+    $priority ||= 5;
+    my $task = "$priority-$i.task";
+    open my $out, '>>', "$dir/$task"
+        or die "couldn't open $dir/$task $!\n";
+    print $out "@ARGV";
+    close $out;
+}
+elsif ($c eq 'rm')
+{
+    my $n = shift;
+    my @tasks = get_tasks($complete);
+    foreach my $task (@tasks)
+    {
+        unlink "$dir/$task" if ($task =~ /^\d+-$n/);
+    }
+}
+elsif ($c eq 'cm')
+{
+    my $n = shift;
+    foreach my $task (get_tasks())
+    {
+        if ($task =~ /^(\d+)-$n\./)
+        {
+            my $i = get_next_free_number(get_tasks(1));
+            rename("$dir/$task", "$dir/$1-$n.complete");
+        }
+    }
+}
+elsif ($c eq 'edit')
+{
+    my $n = shift;
+    print "ups!\n";
+}
+elsif ($c eq 'show')
+{
+    my $n = shift;
+    my @tasks = get_tasks($complete);
+    @tasks = grep { /^\d+-(\d+)\./; $1 == $n } @tasks;
+    my $task = <@tasks>;
+    open my $in, '<', "$dir/$task"
+        or warn "couldn't open $dir/$task $!\n";
+    while(<$in>)
+    {
+        print;
+    }
+    close $in;
+}
+
+exit 0;
+
+sub get_tasks
+{
+    my $complete = shift;
+    return grep {/^\d.*\.complete$/} sort glob("*.complete")
+        if ($complete);
+    return grep {/^\d.*\.task$/} sort glob("*.task");
+}
+
+sub get_next_free_number
+{
+    my @numbers = @_;
+    map {s/^\d+-(\d+)\..*$/$1/} @numbers;
+    my $i = 1;
+    foreach my $n (sort @numbers)
+    {
+        last unless $n == $i;
+        $i++;
+    }
+    return $i;
+}
+
+__END__
+
+=head1 NAME
+
+todo - cli task manager
+
+=head1 SYNOPSIS
+
+    todo [-h|--help|--man]
+    todo add [-p <1-5>] -- <task subject>
+    todo ls [-f] [-c] [-p <1-5>] -- [<string to match>]
+    todo rm <task number>
+    todo edit <task number>
+    todo cm <task number>
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<add>
+
+Add task.
+
+=over 4
+
+=item OPTIONS
+
+=item B<< -p <1-5> >>
+
+Add priority to your tasks, 1 is higher. Defaults to 5.
+
+=back
+
+=item B<ls>
+
+List current tasks. priority-number.task or priority-number.complete
+
+=item B<<cm <task number> >>
+
+Mark task as complete. It will rename the task from .task to .complete
+
+=item rm
+
+Completely remove the task. It is better to mark it as complete to keep
+it.
+
+=item edit
+
+edit
+
+=back
+
+=cut

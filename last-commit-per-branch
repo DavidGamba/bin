@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# prints last commit per branch
+for k in `git branch|sed s/^..//`; do
+    echo -e `git log -1 \
+    --format="%Cgreen%ci %Creset%h %Cblue%cr%Creset" "$k"`\\t"$k";
+done|sort

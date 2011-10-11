@@ -1,0 +1,68 @@
+#!/bin/bash
+
+#ubicaion de mi liberia de musica
+Music_lib="$HOME/Music"
+
+# si el usuario no pone lo que busca en la linea de comandos se lo pedimos
+if [ $1 ] ; then
+    TITULO="$@"
+else
+    echo "Introduce el título de la canción o del artista:"
+    read TITULO
+fi
+
+#Descargamos el PHP correspondiente al título.
+wget http://goear.com/search.php?q="$TITULO"
+
+#La línea 130 contiene todos los enlaces a goear... de risa pero bueno.
+head -130 search.php?q="$TITULO" | tail -1 > canciones.txt
+
+#Mediante ER, obtenemos una lista de canciones y una lista de enlaces.
+egrep -o 'listen/......./[^"]*' canciones.txt > enlaces.txt
+egrep -o '"Escuchar[^"]*' canciones.txt > titulos.txt
+
+#Mostramos al usuario los que ha encontrado en la primera página.
+Linea=1
+cat titulos.txt | while read line;
+	do {
+	        echo $Linea: ${line:9}
+		let 'Linea += 1'
+        }
+        done
+
+#Si no encuentra nada, sale.
+CONDICION=`wc -l titulos.txt | awk '{print $1}'`
+if [ $CONDICION == 0 ]; then
+	echo "No hay resultados. Prueba buscando otra cosa."
+	rm search.php?q="$TITULO" canciones.txt enlaces.txt titulos.txt
+	exit
+fi
+#Leemos qué canción quiere el usuario bajarse.
+echo "¿Cuál te quieres bajar? Indica el número:"
+read NUMERO
+
+#Concatenamos http://www.goear.com con el contenido de aBajar.txt.
+#PD: Alguien sabe hacerlo de manera más sencilla?
+GOEAR=http://www.goear.com/
+head -$NUMERO enlaces.txt | tail -1 > aBajar.txt
+for LISTEN in `cat aBajar.txt`
+do
+	ENLACE=${GOEAR}${LISTEN}
+done
+echo $ENLACE
+
+#A partir de aquí el script no es mío, pero es muy sencillo de leer.
+fileid=`echo $ENLACE | cut -d '/' -f 5`
+xmlurl="http://www.goear.com/tracker758.php?f="$fileid
+infoline=`wget -qO- $xmlurl | grep ".mp3"`
+mp3url=`echo $infoline | cut -d '"' -f6`
+artist=`echo $infoline | cut -d '"' -f10`
+title=`echo $infoline | cut -d '"' -f12`
+dir="$Music_lib/$artist"
+file="$artist-$title.mp3"
+test -e "$dir/$file" && echo "la cancion ya existe!" && exit 1
+test -d "$dir" || mkdir -p "$dir" && echo se creo el directorio $dir
+wget $mp3url -O "$file"
+mv "$file" "$dir/"
+test -e "$dir/$file" && echo la cancion esta en "$dir/$file"
+rm search.php?q="$TITULO" canciones.txt enlaces.txt titulos.txt aBajar.txt

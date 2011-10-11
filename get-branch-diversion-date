@@ -1,0 +1,13 @@
+#!/bin/bash
+
+parent=$1
+child=$2
+# while on the parent branch:
+sha=`git log $parent..$child --format=\%p --reverse | head -n1`
+echo parent:$parent child:$child divergin commit:$sha
+git log --format='%h "%ad" %d' -n1 $sha | cat
+
+# then:
+# repo git checkout -b starting_point_$child \
+# --before-date='$date'
+
