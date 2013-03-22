@@ -1,0 +1,94 @@
+#!/usr/bin/perl -w
+use strict;
+use File::Find;
+use File::Copy;
+
+my $folder = shift;
+my $dry = shift;
+die "Missing dir\n" unless $folder;
+die "Not a dir $folder\n" if( !-d $folder);
+die "Can't read $folder\n" if(!-r $folder );
+
+my $count = 0;
+
+#find({wanted => \&wanted_dir, no_chdir=>0}, $folder);
+find(\&wanted_dir, $folder);
+print "Total files $count\n";
+
+$count = 0;
+find({wanted => \&wanted_files, no_chdir=>0}, $folder);
+print "Total files $count\n";
+
+
+sub wanted_dir
+{
+    return unless -d $File::Find::name;
+    fix_filename($File::Find::name, $_);
+    $count++;
+}
+
+sub wanted_files
+{
+    return unless -w $File::Find::name;
+    fix_filename($File::Find::name, $_);
+    $count++;
+}
+
+sub fix_filename
+{
+    my $file = shift;
+    my $basename = shift;
+    die "Can't write $file\n" unless -w $file;
+    print "* $file\n" if($file =~ /[*]/);
+    print "> $file\n" if($file =~ /[>]/);
+    print "< $file\n" if($file =~ /[<]/);
+    print "| $file\n" if($file =~ /[|]/);
+    print ": $file\n" if($file =~ /[:]/);
+    print "\\ $file\n" if($file =~ /[\\]/);
+    print "+ $file\n" if($file =~ /[+]/);
+    print "\$ $file\n" if($file =~ /[\$]/);
+    print "\" $file\n" if($file =~ /["]/);
+    print "/ $basename\n" if($basename =~ /[\/]/);
+    print "DIR $basename\n" if($basename =~
+    /^(CON|PRN|AUX|CLOCK\$\|NUL|COM1|COM2|COM3|COM4|COM5|COM6|COM7|COM8|COM9|LPT1|LPT2|LPT3|LPT4|LPT5|LPT6|LPT7|LPT8|LPT9)$/);
+    if($file =~ /[&]/)
+    {
+        my $old = $file;
+        $file =~ s/[&]/ and /g;
+        print "W: & $file\n";
+        system("mv '$old' '$file'") unless $dry;
+        print "rename '$old' '$file'\n" unless $dry;
+    }
+    elsif($file =~ /[+]/)
+    {
+        my $old = $file;
+        $file =~ s/[+]/ plus /g;
+        print "W: + $file\n";
+        system("mv '$old' '$file'") unless $dry;
+        print "rename '$old' '$file'\n" unless $dry;
+    }
+    elsif($file =~ /[*]/)
+    {
+        my $old = $file;
+        $file =~ s/[*]/_/g;
+        print "W: : $file\n";
+        system("mv '$old' '$file'") unless $dry;
+        print "rename '$old' '$file'\n" unless $dry;
+    }
+    elsif($file =~ /[:]/)
+    {
+        my $old = $file;
+        $file =~ s/[:]/_/g;
+        print "W: : $file\n";
+        system("mv '$old' '$file'") unless $dry;
+        print "rename '$old' '$file'\n" unless $dry;
+    }
+    elsif($file =~ /["]/)
+    {
+        my $old = $file;
+        $file =~ s/["]/_/g;
+        print "W: : $file\n";
+        system("mv '$old' '$file'") unless $dry;
+        print "rename '$old' '$file'\n" unless $dry;
+    }
+}

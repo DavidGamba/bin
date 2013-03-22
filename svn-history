@@ -1,0 +1,101 @@
+#!/usr/bin/perl -w
+use strict;
+use Data::Dumper;
+use Term::ANSIColor;
+use Getopt::Long;
+use Pod::Usage;
+GetOptions(
+    'h' => sub { pod2usage(-verbose => 3) },
+);
+
+my $svn_repo = shift;
+my $match_term = shift;
+pod2usage(-verbose => 1) unless $svn_repo and $match_term;
+my @cmd = ('svn', 'log', $svn_repo);
+
+open IN, '-|', @cmd or die "Can't execute @cmd $!\n";
+my @commit;
+my $st = 0;
+while(<IN>)
+{
+    if(/^r\d+\s\|/)
+    {
+        if($st == 3)
+        {
+#           print "[all]: " . "@commit";
+            print_in_color(\@commit);
+            $st = 0;
+        }
+        @commit = ();
+        push @commit, $_;
+    }
+    else
+    {
+        push @commit, $_;
+    }
+    if(/$match_term/i)
+    {
+        $st = 3;
+    }
+}
+
+if($st eq 3)
+{
+    print @commit;
+    @commit = undef;
+    $st = 0;
+}
+
+sub print_in_color
+{
+    my $array = shift;
+    foreach (@$array)
+    {
+        if(/^r\d+\s\|/)
+        {
+            print color 'yellow';
+            print;
+            print color 'reset';
+        }
+        elsif(/^(.*)($match_term)(.*)$/i)
+        {
+            print_match( $1, $2, "$3\n" );
+        }
+        elsif(/ticket:\s*\d+-?\d+/i)
+        {
+            print color 'blue';
+            print;
+            print color 'reset';
+        }
+        else
+        {
+            print;
+        }
+    }
+}
+
+sub print_match
+{
+    my ( $a, $b, $c ) = @_;
+    print $a;
+    print color 'bold red';
+    print $b;
+    print color 'reset';
+    print $c;
+}
+
+__END__
+
+=head1 NAME
+
+svn-history
+
+=head1 DESCRIPTION
+
+goes through all the history of the given B<snv-repository> and finds
+commits mathing the given B<match term>.
+
+=head1 SYNOPSIS
+
+    svn-history -h
+    svn-history <svn_repo> <match_term>

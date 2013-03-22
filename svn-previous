@@ -1,0 +1,4 @@
+#!/bin/bash
+revision=$1
+previous=$(( $revision - 1 ))
+svn diff -r $previous:$revision | colordiff | less -R

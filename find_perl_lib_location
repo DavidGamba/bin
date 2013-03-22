@@ -1,0 +1,33 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+GetOptions(
+    'h' => sub { pod2usage(-verbose => 3) },
+);
+
+for my $module ( @ARGV ) {
+    my $package = $module;
+
+    # From This::That to This/That.pm
+    s/::/\//g, s/$/.pm/ for $module;
+
+    if ( require $module ) {
+        print $package . " => " . $INC{$module} . "\n";
+    }
+}
+
+__END__
+
+=head1 NAME
+
+find_perl_lib_location
+
+=head1 DESCRIPTION
+
+Finds the location in disk for a given library
+
+=head1 SYNOPSIS
+
+    find_perl_lib_location [-h]
+    find_perl_lib_location <lib::name> <lib::name2> ...

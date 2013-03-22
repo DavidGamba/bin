@@ -1,0 +1,5 @@
+#!/bin/bash
+# sets caps as backspace and both shifts as capslock
+setxkbmap -option caps:backspace &
+setxkbmap -option shift:both_capslock &
+xmodmap -e "clear Lock" &

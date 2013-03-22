@@ -1,0 +1,11 @@
+#!/bin/bash
+
+name=$1
+date=`date +%y%m%d-%H:%M:%S`
+if [ -n "$name" ] ; then
+    import -window root "$HOME/Pictures/$date-$1.png" -quality 100
+    echo $HOME/Pictures/$date-$1.png
+else
+    import -window root "$HOME/Pictures/$date-screenshot.png" -quality 100
+    echo $HOME/Pictures/$date-screenshot.png
+fi

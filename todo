@@ -1,171 +1,98 @@
 #!/usr/bin/perl -w
 use strict;
-use diagnostics;
+use Env qw( $HOME );
+use Getopt::Long;
 use Pod::Usage;
-use Env qw( HOME );
-use Getopt::Long
-    qw( :config bundling no_ignore_case );
+use File::Find;
 
-my ($opt_help, $opt_man, $priority, $long, $complete);
+my ($list, $new, $edit, $body);
+my $priority = 3;
 GetOptions(
-    'h|help|?' => \$opt_help,
-    'man'      => \$opt_man,
-    'p=i'      => \$priority,
-    'l'        => \$long,
-    'c'        => \$complete,
+    'help'       => sub { pod2usage( -verbose => 1 ) },
+    'man'        => sub { pod2usage( -verbose => 3 ) },
+    'ls'         => \$list,
+    'new=s'      => \$new,
+    'body=s'     => \$body,
+    'edit=s'     => \$edit,
+    'priority=i' => \$priority,
 );
 
-pod2usage(-verbose => 0) if ($opt_help);
-pod2usage(-verbose => 3) if ($opt_man);
-my $c        = shift;
-$c ||= 'ls';
-my $commands = qr/(?:add|ls|cm|rm|edit)/;
+if(!$list and !$edit and @ARGV) {
+    $new = "@ARGV";
+}
+elsif(!$edit and !$new and !@ARGV) {
+    $list = 1;
+}
 
 my $dir = "$HOME/.todo";
-mkdir $dir unless -e $dir;
-chdir $dir;
-if ($c eq 'ls')
-{
-    my @tasks = get_tasks($complete);
-    @tasks = grep { /^(\d+)-\d+\./; $1 <= $priority } @tasks
-        if ($priority);
-    my $regex = shift;
-    foreach my $task (@tasks)
-    {
-        my $name;
-        $name = "$dir/" if ($long);
-        $name .= "$task ";
-        open my $in, '<', "$dir/$task"
-            or warn "couldn't open $dir/$task $!\n";
-        my $subject = <$in>;
-        print "$name $subject\n" if(!$regex or $subject =~ /$regex/);
-        close $in;
-    }
-}
-elsif ($c eq 'add')
-{
-    my $i = get_next_free_number(get_tasks());
-    $priority ||= 5;
-    my $task = "$priority-$i.task";
-    open my $out, '>>', "$dir/$task"
-        or die "couldn't open $dir/$task $!\n";
-    print $out "@ARGV";
-    close $out;
-}
-elsif ($c eq 'rm')
-{
-    my $n = shift;
-    my @tasks = get_tasks($complete);
-    foreach my $task (@tasks)
-    {
-        unlink "$dir/$task" if ($task =~ /^\d+-$n/);
-    }
-}
-elsif ($c eq 'cm')
-{
-    my $n = shift;
-    foreach my $task (get_tasks())
-    {
-        if ($task =~ /^(\d+)-$n\./)
-        {
-            my $i = get_next_free_number(get_tasks(1));
-            rename("$dir/$task", "$dir/$1-$n.complete");
-        }
-    }
-}
-elsif ($c eq 'edit')
-{
-    my $n = shift;
-    print "ups!\n";
-}
-elsif ($c eq 'show')
-{
-    my $n = shift;
-    my @tasks = get_tasks($complete);
-    @tasks = grep { /^\d+-(\d+)\./; $1 == $n } @tasks;
-    my $task = <@tasks>;
-    open my $in, '<', "$dir/$task"
-        or warn "couldn't open $dir/$task $!\n";
-    while(<$in>)
-    {
-        print;
-    }
-    close $in;
-}
+mkdir $dir unless -d $dir;
 
+find( \&list, $dir ) if ($list);
+new($new)   if ($new);
+edit($edit) if ($edit);
 exit 0;
 
-sub get_tasks
+sub list
 {
-    my $complete = shift;
-    return grep {/^\d.*\.complete$/} sort glob("*.complete")
-        if ($complete);
-    return grep {/^\d.*\.task$/} sort glob("*.task");
+    my $file = $_;
+    return unless -f $file;
+    print "$file : ";
+    print get_subject($file);
 }
 
-sub get_next_free_number
+sub get_subject
 {
-    my @numbers = @_;
-    map {s/^\d+-(\d+)\..*$/$1/} @numbers;
-    my $i = 1;
-    foreach my $n (sort @numbers)
-    {
-        last unless $n == $i;
-        $i++;
+    my $file = shift;
+    open my $in, '<', $file or die "Couldn't open $file $!\n";
+    my $subject = '';
+    while(<$in>) {
+        if(/^## Subject: ##/ ... /^##/) {
+            $subject .= $_ unless /^##/;
+        }
     }
-    return $i;
+    close $in;
+    return $subject;
+}
+
+sub new
+{
+    my $subject = shift;
+    my $name = generate_name();
+    open my $out, '>', $name or die "Couldn't open $name $!\n";
+    print $out "## Priority: $priority ##\n";
+    print $out "## Subject: ##\n";
+    print $out "$subject\n";
+    print $out "## Body: ##\n";
+    print $out "$body\n" if $body;
+    close $out;
+}
+
+sub generate_name
+{
+    my @time = localtime(time);
+    @time = map{ two_digits($_) } @time;
+    my ( $sec, $min, $hour, $mday, $mon, $year ) = @time;
+    $year += 1900;
+    return "$dir/$year$mon$mday-$hour$min$sec.todo";
+}
+
+sub two_digits
+{
+    my $int = shift;
+    return "0$int" if $int and $int =~ /^\d$/ and $int < 10;
+    return $int;
 }
 
 __END__
 
+=pod
+
 =head1 NAME
 
-todo - cli task manager
+todo
 
-=head1 SYNOPSIS
+=head1 DESCRIPTION
 
-    todo [-h|--help|--man]
-    todo add [-p <1-5>] -- <task subject>
-    todo ls [-f] [-c] [-p <1-5>] -- [<string to match>]
-    todo rm <task number>
-    todo edit <task number>
-    todo cm <task number>
-
-=head1 OPTIONS
-
-=over 4
-
-=item B<add>
-
-Add task.
-
-=over 4
-
-=item OPTIONS
-
-=item B<< -p <1-5> >>
-
-Add priority to your tasks, 1 is higher. Defaults to 5.
-
-=back
-
-=item B<ls>
-
-List current tasks. priority-number.task or priority-number.complete
-
-=item B<<cm <task number> >>
-
-Mark task as complete. It will rename the task from .task to .complete
-
-=item rm
-
-Completely remove the task. It is better to mark it as complete to keep
-it.
-
-=item edit
-
-edit
-
-=back
-
-=cut
+priority
+    1 - highest
+    5 - lowest

@@ -1,0 +1,12 @@
+#!/bin/bash
+#if [ -t 1 ] ; then
+#    svn diff $@ | colordiff | less -R
+#else
+#    svn diff $@
+#fi
+
+if [ -t 1 ] ; then
+    svn st $@ | grep -v ? | sed -e 's,\w\s*,,' | sort | xargs svn diff | colordiff | less -R
+else
+    svn st $@ | grep -v ? | sed -e 's,\w\s*,,' | sort | xargs svn diff
+fi
