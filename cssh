@@ -1,0 +1,22 @@
+#!/usr/bin/expect
+set fd [open "~/.ssh/ssh-passwords" r]
+set passwords_file [read -nonewline $fd]
+close $fd
+set passwords [split $passwords_file "\n" ]
+
+set timeout 20
+set hostname [lindex $argv 0]
+set count 0
+spawn ssh -t $hostname "bash -o vi -i"
+expect {
+  "password:" {
+    set pass [lindex $passwords $count]
+    send "$pass\r"
+    incr count
+    exp_continue
+  }
+  "~" {
+    send_user ":)"
+  }
+}
+interact
