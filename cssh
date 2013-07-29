@@ -9,9 +9,20 @@ set hostname [lindex $argv 0]
 set count 0
 spawn ssh -t $hostname "bash -o vi -i"
 expect {
+  "disconnect" {
+    exit
+  }
+  "no)?" {
+    send -- "yes\r"
+    exp_continue
+  }
   "password:" {
+    if { $count == [llength $passwords] } {
+      send_user "\n\[ERROR\] Ran out of possible passwords!\n"
+      exit
+    }
     set pass [lindex $passwords $count]
-    send "$pass\r"
+    send -- "$pass\r"
     incr count
     exp_continue
   }
