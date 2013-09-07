@@ -1,0 +1,89 @@
+#!/bin/bash
+
+declare -a browsers=('firefox' 'chromium-browser' 'chrome')
+
+function check_browser() {
+  browser=$1
+  which $browser > /dev/null
+  return $?
+}
+
+function open_in_browser_tab(){
+  browser=$1
+  case "$1" in
+    firefox)
+      shift
+      firefox "$@" > /dev/null 2>&1
+    ;;
+    # TODO
+    chromium-browser)
+      shift
+      chromium-browser $1 > /dev/null 2>&1
+    ;;
+    # TODO
+    chrome)
+      shift
+      chrome $1 > /dev/null 2>&1
+    ;;
+    *)
+      echo wrong browser "$browser"
+    ;;
+  esac
+}
+
+# TODO
+function open_in_browser_window(){
+  browser=$1
+  case "$1" in
+    firefox)
+      shift
+      firefox "$@" > /dev/null 2>&1
+    ;;
+    chromium-browser)
+      shift
+      chromium-browser --app $1 > /dev/null 2>&1
+    ;;
+    chrome)
+      shift
+      chrome --app $1 > /dev/null 2>&1
+    ;;
+    *)
+      echo wrong browser "$browser"
+    ;;
+  esac
+}
+
+while test $# -gt 0 ; do
+  case "$1" in
+    -h|--help)
+      echo TODO :S
+      exit 1
+    ;;
+    -b|--browser)
+      shift
+      browser=$1
+      shift
+      check_browser $browser
+      if [[ $? -eq 0 ]] ; then
+        open_in_browser_tab $browser $1 &&
+        exit $?
+      else
+        echo "Not a valid browser: '$browser'"
+      fi
+      exit 1
+    ;;
+    *)
+      for browser in "${browsers[@]}" ; do
+        check_browser $browser
+        if [[ $? -eq 0 ]] ; then
+          open_in_browser_tab $browser $1 &&
+          exit
+        else
+          continue
+        fi
+      done
+      echo No valid browser found!
+      exit 1
+    ;;
+  esac
+done
