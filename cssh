@@ -1,33 +1,75 @@
-#!/usr/bin/expect
-set fd [open "~/.ssh/ssh-passwords" r]
-set passwords_file [read -nonewline $fd]
-close $fd
-set passwords [split $passwords_file "\n" ]
+#!/usr/bin/expect -f
 
-set timeout 20
-set hostname [lindex $argv 0]
-set count 0
-spawn ssh -t $hostname "bash -o vi -i"
-expect {
-  "disconnect" {
-    exit
-  }
-  "no)?" {
-    send -- "yes\r"
-    exp_continue
-  }
-  "password:" {
-    if { $count == [llength $passwords] } {
-      send_user "\n\[ERROR\] Ran out of possible passwords!\n"
+# Given a hostname it reads the file ~/.ssh/config and checks if a password is
+# present.
+#
+# Syntax:
+# Host hostname # password
+#
+# Usage:
+# cssh <hostname>
+
+set given_hostname [lindex $argv 0]
+
+if { $argc < 1 } {
+  puts "Missing hostname!"
+  puts "  cssh <hostname>"
+  exit 1
+}
+
+proc run_ask_pass_ssh {hostname} {
+  spawn ssh -t $hostname "bash -o vi -i"
+  interact
+}
+
+proc run_ssh {hostname password} {
+  spawn ssh -t $hostname "bash -o vi -i"
+  expect {
+    "disconnect" {
       exit
     }
-    set pass [lindex $passwords $count]
-    send -- "$pass\r"
-    incr count
-    exp_continue
+    "no)?" {
+      send -- "yes\r"
+      exp_continue
+    }
+    "assword:" {
+      send -- "$password\r"
+      exp_continue
+    }
+    "~" {
+      send_user ":)"
+    }
   }
-  "~" {
-    send_user ":)"
-  }
+  interact
 }
-interact
+
+# Slurp up the data file
+set fh [open "~/.ssh/config" r ]
+set file_data [read $fh]
+close $fh
+
+# Process data file
+set data [split $file_data "\n"]
+
+# Read each line of data
+foreach line $data {
+  # puts $line
+  regexp {Host (\S*) # (\S*)} $line -> hostname password
+  if [ info exists hostname ] {
+    if { [string compare $given_hostname $hostname ] == 0 } {
+      run_ssh $hostname $password
+    }
+  } else {
+    regexp {Host (\S*)} $line -> hostname
+    if [ info exists hostname ] {
+      if { [string compare $given_hostname $hostname ] == 0 } {
+        run_ask_pass_ssh $hostname
+      }
+    }
+  }
+  # clean up variables for next iteration
+  if [ info exists hostname ] { unset hostname }
+  if [ info exists password ] { unset password }
+}
+
+# vi:ft=tcl
