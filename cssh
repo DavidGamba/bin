@@ -58,12 +58,14 @@ foreach line $data {
   if [ info exists hostname ] {
     if { [string compare $given_hostname $hostname ] == 0 } {
       run_ssh $hostname $password
+      exit 0
     }
   } else {
     regexp {Host (\S*)} $line -> hostname
     if [ info exists hostname ] {
       if { [string compare $given_hostname $hostname ] == 0 } {
         run_ask_pass_ssh $hostname
+        exit 0
       }
     }
   }
@@ -71,5 +73,9 @@ foreach line $data {
   if [ info exists hostname ] { unset hostname }
   if [ info exists password ] { unset password }
 }
+
+# Default if no match was found
+run_ask_pass_ssh $given_hostname
+exit 0
 
 # vi:ft=tcl
