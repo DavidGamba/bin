@@ -1,0 +1,85 @@
+#!/usr/bin/expect -f
+
+# Given a scp command it reads the file ~/.ssh/config and checks if a password is
+# present for the hostname.
+#
+# ssh config Syntax:
+# Host hostname # password
+#
+# Usage:
+# cscp [options] <file(s)> <hostname:[location]>"
+
+set given_hostname_and_location [lindex $argv end]
+
+if { $argc < 2 } {
+  puts "Missing arguments!"
+  puts "  cscp \[options\] <file(s)> <hostname:\[location\]>"
+  exit 1
+}
+
+regexp {(.*):} $given_hostname_and_location -> given_hostname
+
+puts "$given_hostname"
+
+# Pass nothing because argument expansion doesn't seem to be working otherwise
+# and I feel too lazy to check right now.
+proc run_ask_pass_scp {args nothing} {
+  set timeout -1
+  spawn scp {*}$args
+  interact
+}
+
+proc run_scp {args password} {
+  set timeout -1
+  spawn scp {*}$args
+  expect {
+    "disconnect" {
+      exit
+    }
+    "no)?" {
+      send -- "yes\r"
+      exp_continue
+    }
+    "assword:" {
+      send -- "$password\r"
+      exp_continue
+    }
+  }
+}
+
+# Slurp up the data file
+set fh [open "~/.ssh/config" r ]
+set file_data [read $fh]
+close $fh
+
+# Process data file
+set data [split $file_data "\n"]
+
+# Read each line of data
+foreach line $data {
+  # puts $line
+  regexp {Host (\S*) # (\S*)} $line -> hostname password
+  if [ info exists hostname ] {
+    if { [string compare $given_hostname $hostname ] == 0 } {
+      run_scp $argv $password
+      exit 0
+    }
+  } else {
+    regexp {Host (\S*)} $line -> hostname
+    if [ info exists hostname ] {
+      if { [string compare $given_hostname $hostname ] == 0 } {
+        run_ask_pass_scp $argv "nothing"
+        exit 0
+      }
+    }
+  }
+  # clean up variables for next iteration
+  if [ info exists hostname ] { unset hostname }
+  if [ info exists password ] { unset password }
+}
+
+# Default if no match was found
+run_ask_pass_scp $argv "nothing"
+exit 0
+
+# vi:ft=tcl
