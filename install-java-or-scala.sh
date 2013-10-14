@@ -51,17 +51,19 @@ function update_alternatives () {
   chmod a+x /usr/bin/$binary
 }
 
-prefix=/usr/share
+prefix=''
+if [[ $dir =~ java || $dir =~ jdk || $dir =~ jre ]]; then
+  prefix=/usr/lib/jvm
+elif [[ $dir =~ scala ]]; then
+  prefix=/usr/share
+fi
+
 system_dir=$prefix/$(basename $dir)
 cp -r $dir $system_dir
 
-# binaries=( fsc scala scalac scaladoc scalap )
-# binaries=( java javac javaws javadoc )
-# for binary in "${binaries[@]}" ; do
 shopt -s nullglob
 for file in $dir/bin/* ; do
   base_bin=`basename $file`
-  # if [[ ! $base_bin =~ \. && -e $dir/man/man1/${base_bin}.1 ]]; then
   if [[ -e $dir/man/man1/${base_bin}.1 ]]; then
     update_alternatives $system_dir $base_bin
   fi
@@ -73,7 +75,7 @@ shopt -s nocasematch
 if [[ $dir =~ java || $dir =~ jdk || $dir =~ jre ]]; then
 
   # Create HOME variable
-  ln -s $system_dir $prefix/JAVA_HOME
+  ln -sf $system_dir $prefix/JAVA_HOME
   export JAVA_HOME=$prefix/JAVA_HOME
   cat <<EOL
   # Add this to your bashrc
@@ -85,10 +87,10 @@ EOL
 
   # Firefox java system wide
   mkdir -p /usr/lib/mozilla/plugins
-  ln -s $system_dir/lib/amd64/libnpjp2.so /usr/lib/mozilla/plugins/
+  ln -sf $system_dir/lib/amd64/libnpjp2.so /usr/lib/mozilla/plugins/libnpjp2.so
 
 elif [[ $dir =~ scala ]]; then
-  ln -s $system_dir $prefix/SCALA_HOME
+  ln -sf $system_dir $prefix/SCALA_HOME
   export SCALA_HOME=$prefix/SCALA_HOME
   cat <<EOL
   # Add this to your bashrc
