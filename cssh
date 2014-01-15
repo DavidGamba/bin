@@ -1,81 +1,112 @@
-#!/usr/bin/expect -f
+#!/usr/bin/perl -w
+use strict;
+use Env qw(HOME);
+use Expect;
+use Getopt::Long qw(:config passthrough no_ignore_case);
+use Pod::Usage;
 
-# Given a hostname it reads the file ~/.ssh/config and checks if a password is
-# present.
-#
-# Syntax:
-# Host hostname # password
-#
-# Usage:
-# cssh <hostname>
+GetOptions(
+  'h|?'  => sub { pod2usage( -verbose => 0 ) },
+  'help' => sub { pod2usage( -verbose => 3 ) },
+);
 
-set given_hostname [lindex $argv 0]
+my $hostname = shift;
+pod2usage("[ERROR] Missing hostname!\n")
+unless defined $hostname;
 
-if { $argc < 1 } {
-  puts "Missing hostname!"
-  puts "  cssh <hostname>"
-  exit 1
+open my $in, '<', "$HOME/.ssh/config" or die "Can't open file: $!\n";
+while (<$in>) {
+    if (/Host $hostname # (\S*)/) {
+        my $password = $1;
+        interactive_ssh( $hostname, $password );
+    }
+}
+interactive_ssh( $hostname );
+
+sub interactive_ssh
+{
+    my $hostname = shift;
+    my $password = shift;
+    my $timeout  = 5;
+
+    my @cmd = ( 'ssh', '-t', $hostname, 'bash', '-o', 'vi', '-i' );
+
+    # my @cmd = ('ssh', $hostname);
+    my $exp = new Expect;
+    $exp->slave->clone_winsize_from( \*STDIN );
+    $exp->spawn(@cmd);
+    $SIG{WINCH} = \&winch($exp);
+
+    sub winch
+    {
+        my $exp = shift;
+        $exp->slave->clone_winsize_from( \*STDIN );
+        kill WINCH => $exp->pid if $exp->pid;
+        $SIG{WINCH} = \&winch;
+    }
+    if( defined $password ) {
+      $exp->expect(
+        $timeout,
+        [   qr/no\)\?\s+$/i => sub {
+            my $self = shift;
+            $self->send("yes\n");
+            exp_continue;
+          }
+        ],
+        [   qr/password:\s+$/i => sub {
+            my $self = shift;
+            $self->send("$password\n");
+            exp_continue;
+          }
+        ],
+        '-re',
+        qr/~/,    #' wait for shell prompt, then exit expect
+      );
+    }
+    else {
+      $exp->expect(
+        $timeout,
+        [   qr/no\)\?\s+$/i => sub {
+            my $self = shift;
+            $self->send("yes\n");
+            exp_continue;
+          }
+        ],
+        '-re',
+        qr/password:\s+$/,    #' wait for shell prompt, then exit expect
+      );
+    }
+    $exp->interact();
+    $exp->soft_close();
+    exit 0;
 }
 
-proc run_ask_pass_ssh {hostname} {
-  spawn ssh -t $hostname "bash -o vi -i"
-  interact
-}
+__END__
 
-proc run_ssh {hostname password} {
-  spawn ssh -t $hostname "bash -o vi -i"
-  expect {
-    "disconnect" {
-      exit
-    }
-    "no)?" {
-      send -- "yes\r"
-      exp_continue
-    }
-    "assword:" {
-      send -- "$password\r"
-      exp_continue
-    }
-    "~" {
-      send_user ":)"
-    }
-  }
-  interact
-}
+=head1 NAME
 
-# Slurp up the data file
-set fh [open "~/.ssh/config" r ]
-set file_data [read $fh]
-close $fh
+cssh
 
-# Process data file
-set data [split $file_data "\n"]
+=head1 DESCRIPTION
 
-# Read each line of data
-foreach line $data {
-  # puts $line
-  regexp {Host (\S*) # (\S*)} $line -> hostname password
-  if [ info exists hostname ] {
-    if { [string compare $given_hostname $hostname ] == 0 } {
-      run_ssh $hostname $password
-      exit 0
-    }
-  } else {
-    regexp {Host (\S*)} $line -> hostname
-    if [ info exists hostname ] {
-      if { [string compare $given_hostname $hostname ] == 0 } {
-        run_ask_pass_ssh $hostname
-        exit 0
-      }
-    }
-  }
-  # clean up variables for next iteration
-  if [ info exists hostname ] { unset hostname }
-  if [ info exists password ] { unset password }
-}
+Given a hostname it reads the file ~/.ssh/config and checks if a password is
+present. If it is, it uses it to ssh into the server. If not, it will ask
+for the password.
 
-# Default if no match was found
-run_ask_pass_ssh $given_hostname
-exit 0
+~/.ssh/config file syntax:
 
-# vi:ft=tcl
+  Syntax:
+  Host hostname # password
+    Hostname full_hostname
+    User username
+
+=head1 SYNOPSIS
+
+  cssh <hostname>
+  cssh [--help]       # shows extended help
+  cssh [-h |-?]       # shows short help
+
+=head1 DEPENDENCIES
+
+  cpan Expect
+  cpan IO::Stty
