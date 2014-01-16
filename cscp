@@ -1,85 +1,130 @@
-#!/usr/bin/expect -f
+#!/usr/bin/perl -w
+use strict;
+use Env qw(HOME);
+use Expect;
+use Getopt::Long qw(:config passthrough no_ignore_case);
+use Pod::Usage;
 
-# Given a scp command it reads the file ~/.ssh/config and checks if a password is
-# present for the hostname.
-#
-# ssh config Syntax:
-# Host hostname # password
-#
-# Usage:
-# cscp [options] <file(s)> <hostname:[location]>"
+my $recursive;
+GetOptions(
+  'h|?'  => sub { pod2usage( -verbose => 0 ) },
+  'help' => sub { pod2usage( -verbose => 3 ) },
+  'r' => \$recursive,
+);
 
-set given_hostname_and_location [lindex $argv end]
-
-if { $argc < 2 } {
-  puts "Missing arguments!"
-  puts "  cscp \[options\] <file(s)> <hostname:\[location\]>"
-  exit 1
+my $remote;
+my $remote_hostname;
+my $remote_location;
+my $remote_first = 0;
+my $local;
+if($ARGV[0] =~ /:/) {
+  $remote_first = 1;
+  $remote = shift;
+  $local = shift;
+}
+else {
+  $local = shift;
+  $remote = shift;
 }
 
-regexp {(.*):} $given_hostname_and_location -> given_hostname
+pod2usage("[ERROR] Missing remote!\n")
+unless defined $remote;
 
-puts "$given_hostname"
+pod2usage("[ERROR] Missing local!\n")
+unless defined $local;
 
-# Pass nothing because argument expansion doesn't seem to be working otherwise
-# and I feel too lazy to check right now.
-proc run_ask_pass_scp {args nothing} {
-  set timeout -1
-  spawn scp {*}$args
-  interact
+($remote_hostname,$remote_location) = split(/:/, $remote);
+
+open my $in, '<', "$HOME/.ssh/config" or die "Can't open file: $!\n";
+while (<$in>) {
+    if (/Host $remote_hostname # (\S*)/) {
+        my $password = $1;
+        interactive_scp( $remote, $password );
+    }
+}
+interactive_scp( $remote );
+
+sub interactive_scp
+{
+    my $hostname = shift;
+    my $password = shift;
+    my $timeout  = 5;
+
+    my @cmd = ( 'scp' );
+    push @cmd, '-r' if $recursive;
+    if($remote_first) {
+      push @cmd, $remote, $local;
+    }
+    else {
+      push @cmd, $local, $remote;
+    }
+
+    my $exp = new Expect;
+    $exp->spawn(@cmd);
+
+    if( defined $password ) {
+      $exp->expect(
+        $timeout,
+        [   qr/no\)\?\s+$/i => sub {
+            my $self = shift;
+            $self->send("yes\n");
+            exp_continue;
+          }
+        ],
+        [   qr/password:\s+$/i => sub {
+            my $self = shift;
+            $self->send("$password\n");
+            exp_continue;
+          }
+        ],
+        '-re',
+        qr/%/,    #' wait for shell prompt, then exit expect
+      );
+    }
+    else {
+      $exp->expect(
+        $timeout,
+        [   qr/no\)\?\s+$/i => sub {
+            my $self = shift;
+            $self->send("yes\n");
+            exp_continue;
+          }
+        ],
+        '-re',
+        qr/password:\s+$/,    #' wait for shell prompt, then exit expect
+      );
+    }
+    $exp->interact();
+    $exp->soft_close();
+    exit 0;
 }
 
-proc run_scp {args password} {
-  set timeout -1
-  spawn scp {*}$args
-  expect {
-    "disconnect" {
-      exit
-    }
-    "no)?" {
-      send -- "yes\r"
-      exp_continue
-    }
-    "assword:" {
-      send -- "$password\r"
-      exp_continue
-    }
-  }
-}
+__END__
 
-# Slurp up the data file
-set fh [open "~/.ssh/config" r ]
-set file_data [read $fh]
-close $fh
+=head1 NAME
 
-# Process data file
-set data [split $file_data "\n"]
+cscp
 
-# Read each line of data
-foreach line $data {
-  # puts $line
-  regexp {Host (\S*) # (\S*)} $line -> hostname password
-  if [ info exists hostname ] {
-    if { [string compare $given_hostname $hostname ] == 0 } {
-      run_scp $argv $password
-      exit 0
-    }
-  } else {
-    regexp {Host (\S*)} $line -> hostname
-    if [ info exists hostname ] {
-      if { [string compare $given_hostname $hostname ] == 0 } {
-        run_ask_pass_scp $argv "nothing"
-        exit 0
-      }
-    }
-  }
-  # clean up variables for next iteration
-  if [ info exists hostname ] { unset hostname }
-  if [ info exists password ] { unset password }
-}
+=head1 DESCRIPTION
 
-# Default if no match was found
-run_ask_pass_scp $argv "nothing"
-exit 0
+Given a hostname it reads the file ~/.ssh/config and checks if a password is
+present. If it is, it uses it to scp. If not, it will ask for the password.
 
-# vi:ft=tcl
+~/.ssh/config file syntax:
+
+  Syntax:
+  Host hostname # password
+    Hostname full_hostname
+    User username
+
+=head1 SYNOPSIS
+
+  cscp [-r] <dir_or_file> <[user@]hostname:[dir_or_file]>
+  cscp [-r] <[user@]hostname:[dir_or_file]> <dir_or_file>
+  cscp [--help]       # shows extended help
+  cscp [-h |-?]       # shows short help
+
+=head1 DEPENDENCIES
+
+  cpan Expect
+  cpan IO::Stty
