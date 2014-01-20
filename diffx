@@ -1,0 +1,102 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long qw(:config passthrough no_ignore_case);
+use Pod::Usage;
+use POSIX qw(strftime);
+
+GetOptions(
+  'h|?'  => sub { pod2usage( -verbose => 0 ) },
+  'help' => sub { pod2usage( -verbose => 3 ) },
+  'W|width=i' => \my $width,
+);
+
+my $a = shift;
+my $b = shift;
+pod2usage("[ERROR] Missing arguments!\n")
+  unless $a and $b;
+
+# diff uses the range from ($width/2 - 2) to ($width/2 + 1)] for the divider
+# the actual symbol to divide is located in $width/2 -1
+$width ||= 500;
+my $end_first       = $width/2 - 3;
+my $start_second    = $width/2 + 2;
+my $symbol_location = $width/2 - 1;
+
+my @cmd = ('diff', "--width=$width", '-y', '-t', $a, $b);
+
+open my $in, '-|', @cmd or die "Can't run command: $!\n";
+
+sub date
+{
+  my $index = shift;
+  return strftime("%Y-%d-%m %H:%M:%S.00000000$index %z", localtime());
+}
+
+my $date_a = date(0);
+my $date_b = date(1);
+print <<EOL;
+--- $a\t$date_a
++++ $b\t$date_b
+EOL
+
+while(<$in>) {
+  my @line = split('', $_);
+  if($#line > 0) {
+    my $first = join("", @line[0 .. $end_first]);
+    my $divider = $line[$symbol_location];
+    my $second = join("", @line[$start_second .. $#line]);
+    $first =~ s/\s+$//;
+    $second =~ s/\s+$//;
+    if($divider eq ' ') {
+      print " $first\n";
+    }
+    elsif($divider eq '|') {
+      print "-$first\n";
+      print "+$second\n";
+    }
+    elsif($divider eq '>') {
+      print " $first\n";
+      print "+$second\n";
+    }
+    elsif($divider eq '<') {
+      print "+$first\n";
+      print " $second\n";
+    }
+  }
+}
+
+__END__
+
+=head1 NAME
+
+diffx
+
+=head1 SYNOPSIS
+
+diffx <file_a> <file_b> [-w|--width <number>]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B< -w > B<< --width >> I<number>
+
+Tells the diff the width to use, default is 500.
+
+=head1 DESCRIPTION
+
+diff that prints unified format with line by line comparisons instead of by group.
+
+Instead of printing:
+
+  - line A
+  - line B
+  + line a
+  + line b
+
+It prints:
+
+  - line A
+  + line a
+  - line B
+  + line b
