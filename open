@@ -1,54 +1,28 @@
 #!/bin/bash
+#
+# Thanks to 2010 David A. Wheeler
+# <http://www.dwheeler.com/essays/open-files-urls.html> and to Suraj N.
+# Kurapati <https://github.com/sunaku> for his opener ruby library that pointed
+# me to it.
 
-declare -a browsers=('firefox' 'chromium-browser' 'chrome')
-
-function check_browser() {
-  browser=$1
-  which $browser > /dev/null
-  return $?
-}
-
-function open_in_browser_tab(){
-  browser=$1
-  case "$1" in
-    firefox)
-      shift
-      firefox "$@" > /dev/null 2>&1
+function open(){
+  os=`uname -s`
+  shopt -s nocasematch
+  case "$os" in
+    Linux*)
+      xdg-open "$@"
     ;;
-    # TODO
-    chromium-browser)
-      shift
-      chromium-browser $1 > /dev/null 2>&1
+    Darwin*)
+      open "$@"
     ;;
-    # TODO
-    chrome)
-      shift
-      chrome $1 > /dev/null 2>&1
+    CYGWIN*)
+      cygstart "$@"
+    ;;
+    sunos*|solaris*)
+      /usr/dt/bin/sdtwebclient "$@"
     ;;
     *)
-      echo wrong browser "$browser"
-    ;;
-  esac
-}
-
-# TODO
-function open_in_browser_window(){
-  browser=$1
-  case "$1" in
-    firefox)
-      shift
-      firefox "$@" > /dev/null 2>&1
-    ;;
-    chromium-browser)
-      shift
-      chromium-browser --app $1 > /dev/null 2>&1
-    ;;
-    chrome)
-      shift
-      chrome --app $1 > /dev/null 2>&1
-    ;;
-    *)
-      echo wrong browser "$browser"
+      echo Unsupported OS "$os"
     ;;
   esac
 }
@@ -59,31 +33,9 @@ while test $# -gt 0 ; do
       echo TODO :S
       exit 1
     ;;
-    -b|--browser)
-      shift
-      browser=$1
-      shift
-      check_browser $browser
-      if [[ $? -eq 0 ]] ; then
-        open_in_browser_tab $browser $1 &&
-        exit $?
-      else
-        echo "Not a valid browser: '$browser'"
-      fi
-      exit 1
-    ;;
     *)
-      for browser in "${browsers[@]}" ; do
-        check_browser $browser
-        if [[ $? -eq 0 ]] ; then
-          open_in_browser_tab $browser $1 &&
-          exit
-        else
-          continue
-        fi
-      done
-      echo No valid browser found!
-      exit 1
+      open "$@"
+      exit 0
     ;;
   esac
 done
