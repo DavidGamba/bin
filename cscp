@@ -48,7 +48,7 @@ sub interactive_scp
 {
     my $hostname = shift;
     my $password = shift;
-    my $timeout  = 5;
+    my $timeout  = 15;
 
     my @cmd = ( 'scp' );
     push @cmd, '-r' if $recursive;
