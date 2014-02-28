@@ -34,7 +34,7 @@ extract () {
                      delete_same_dir_name $dir
                      ;;
         *.lzma)      unlzma    $1  ;;
-        *.rpm)       local dir=`echo $1 | sed -r 's,(\.[^.]*)+$,,'`
+        *.rpm)       local dir=`echo $1 | perl -p -e 's/(\.[^.]*){1,2}$//'`
                      mkdir $dir;
                      cd $dir;
                      rpm2cpio  ../$1 | cpio -i --make-directories
