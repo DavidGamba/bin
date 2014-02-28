@@ -35,15 +35,14 @@ sub interactive_ssh
     my $exp = new Expect;
     $exp->slave->clone_winsize_from( \*STDIN );
     $exp->spawn(@cmd);
-    $SIG{WINCH} = \&winch($exp);
-
-    sub winch
-    {
-        my $exp = shift;
+    my $winch;
+    $winch = sub {
         $exp->slave->clone_winsize_from( \*STDIN );
         kill WINCH => $exp->pid if $exp->pid;
-        $SIG{WINCH} = \&winch;
-    }
+        $SIG{WINCH} = \&$winch;
+    };
+    $SIG{WINCH} = \&$winch;
+
     if( defined $password ) {
       $exp->expect(
         $timeout,
