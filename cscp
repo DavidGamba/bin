@@ -41,6 +41,10 @@ while (<$in>) {
         my $password = $1;
         interactive_scp( $remote, $password );
     }
+    elsif (/Host \* # (\S*)/) {
+        my $password = $1;
+        interactive_scp( $remote, $password );
+    }
 }
 interactive_scp( $remote );
 

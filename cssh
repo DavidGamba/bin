@@ -20,6 +20,10 @@ while (<$in>) {
         my $password = $1;
         interactive_ssh( $hostname, $password );
     }
+    elsif (/Host \* # (\S*)/) {
+        my $password = $1;
+        interactive_ssh( $hostname, $password );
+    }
 }
 interactive_ssh( $hostname );
 
