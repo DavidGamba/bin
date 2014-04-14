@@ -1,7 +1,0 @@
-#!/bin/bash
-revision=$1
-if [[ -z "$revision" ]]; then
-  revision=`svn info | grep 'Last Changed Rev:' | sed -e 's,Last Changed Rev: ,,'`
-fi
-previous=$(( $revision - 1 ))
-svn diff -r $previous:$revision | colordiff | less -R
