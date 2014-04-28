@@ -60,4 +60,4 @@ delete_same_dir_name() {
   fi
 }
 
-extract $1
+extract $@
