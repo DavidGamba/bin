@@ -4,40 +4,41 @@ extract () {
   local e=0
   if [ $# != 1 ];
   then
+    echo "ERROR: Missing or too many arguments $@"
     echo
     echo "  Usage: extract [COMPRESSED_FILENAME]"
     echo
     e=1
   else
-    if [ -f $1 ];
+    if [ -f "$1" ];
     then
-      case $1 in
+      case "$1" in
 #        *.t@(gz|lz|xz|b@(2|z?(2))|a@(z|r?(.@(Z|bz?(2)|gz|lzma|xz)))))
 #                c='bsdtar xvf' ;;
 #        *.Z)    c='uncompress' ;;
 #        *.exe)  c='cabextract' ;;
 #        *.rar)  c='unrar x'    ;;
 #        *.xz)   c='unxz'       ;;
-        *.7z)        7za x $1      ;;
-        *.tar)       tar -xvf  $1  ;;
-        *.tgz)       tar -xvzf $1  ;;
-        *.tar.gz)    tar -xvzf $1  ;;
-        *.tbz2)      tar -xvjf $1  ;;
-        *.tar.bz2)   tar -xvjf $1  ;;
-        *.gz)        gunzip    $1  ;;
-        *.bz2)       bunzip2   $1  ;;
-        *.zip)       local dir=`echo $1 | sed -r 's,\.[^.]*$,,'`
-                     mkdir $dir
-                     cd $dir
-                     unzip ../$1
+        *.7z)        7za x     "$1"  ;;
+        *.tar)       tar -xvf  "$1"  ;;
+        *.tgz)       tar -xvzf "$1"  ;;
+        *.tar.gz)    tar -xvzf "$1"  ;;
+        *.tbz2)      tar -xvjf "$1"  ;;
+        *.tar.bz2)   tar -xvjf "$1"  ;;
+        *.gz)        gunzip    "$1"  ;;
+        *.bz2)       bunzip2   "$1"  ;;
+        *.lzma)      unlzma    "$1"  ;;
+        *.zip|*.crx)       local dir=`echo "$1" | sed -r 's,\.[^.]*$,,'`
+                     mkdir "$dir"
+                     cd "$dir"
+                     unzip ../"$1"
                      cd ..
-                     delete_same_dir_name $dir
+                     delete_same_dir_name "$dir"
                      ;;
-        *.lzma)      unlzma    $1  ;;
-        *.rpm)       local dir=`echo $1 | perl -p -e 's/(\.[^.]*){1,2}$//'`
-                     mkdir $dir;
-                     cd $dir;
-                     rpm2cpio  ../$1 | cpio -i --make-directories
+        *.rpm)       local dir=`echo "$1" | perl -p -e 's/(\.[^.]*){1,2}$//'`
+                     mkdir "$dir";
+                     cd "$dir";
+                     rpm2cpio  ../"$1" | cpio -i --make-directories
                      cd ..
                      ;;
         *)           echo "  '$1' file type unknown"; e=2 ;;
@@ -60,4 +61,4 @@ delete_same_dir_name() {
   fi
 }
 
-extract $@
+extract "$@"
