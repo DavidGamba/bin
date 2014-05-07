@@ -1,0 +1,13 @@
+#!/bin/bash
+echo -n 'America/Los_Angeles '
+TZ='America/Los_Angeles' date
+echo -n 'America/Edmonton    '
+TZ='America/Edmonton' date
+echo -n 'America/Costa_Rica  '
+TZ='America/Costa_Rica' date
+echo -n 'America/Chicago     '
+TZ='America/Chicago' date
+echo -n 'America/New_York    '
+TZ='America/New_York' date
+
+echo "Remember to use date -d '<time> <timezone>' for dates in the future!"
