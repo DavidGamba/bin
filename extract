@@ -23,6 +23,7 @@ extract () {
         *.tar)       tar -xvf  "$1"  ;;
         *.tgz)       tar -xvzf "$1"  ;;
         *.tar.gz)    tar -xvzf "$1"  ;;
+        *.txz)       tar -xvJf "$1"  ;;
         *.tbz2)      tar -xvjf "$1"  ;;
         *.tar.bz2)   tar -xvjf "$1"  ;;
         *.gz)        gunzip    "$1"  ;;
