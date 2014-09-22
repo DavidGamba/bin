@@ -42,6 +42,11 @@ function update_alternatives () {
   directory=$1
   binary=$2
 
+  echo update-alternatives --install \
+    "/usr/bin/$binary" "$binary" \
+    "$directory/bin/$binary" 2000 \
+    --slave /usr/share/man/man1/${binary}.1 ${binary}.1 $directory/man/man1/${binary}.1
+
   update-alternatives --install \
     "/usr/bin/$binary" "$binary" \
     "$directory/bin/$binary" 2000 \
@@ -65,6 +70,7 @@ shopt -s nullglob
 for file in $dir/bin/* ; do
   base_bin=`basename $file`
   if [[ -e $dir/man/man1/${base_bin}.1 ]]; then
+    echo update_alternatives $system_dir $base_bin
     update_alternatives $system_dir $base_bin
   fi
 done
@@ -75,6 +81,7 @@ shopt -s nocasematch
 if [[ $dir =~ java || $dir =~ jdk || $dir =~ jre ]]; then
 
   # Create HOME variable
+  rm $prefix/JAVA_HOME
   ln -sf $system_dir $prefix/JAVA_HOME
   export JAVA_HOME=$prefix/JAVA_HOME
   cat <<EOL
@@ -87,7 +94,7 @@ EOL
 
   # Firefox java system wide
   mkdir -p /usr/lib/mozilla/plugins
-  ln -sf $system_dir/lib/amd64/libnpjp2.so /usr/lib/mozilla/plugins/libnpjp2.so
+  ln -sf $system_dir/jre/lib/amd64/libnpjp2.so /usr/lib/mozilla/plugins/libnpjp2.so
 
 elif [[ $dir =~ scala ]]; then
   ln -sf $system_dir $prefix/SCALA_HOME
