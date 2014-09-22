@@ -64,7 +64,13 @@ elif [[ $dir =~ scala ]]; then
 fi
 
 system_dir=$prefix/$(basename $dir)
-cp -r $dir $system_dir
+mkdir -p $prefix
+cp -r $dir $prefix
+
+if [[ $? -ne 0 ]]; then
+  echo "Failed to copy $dir" 2>&1
+  exit 1
+fi
 
 shopt -s nullglob
 for file in $dir/bin/* ; do
