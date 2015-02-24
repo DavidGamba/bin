@@ -14,3 +14,4 @@ TZ='Asia/Hong_Kong' date
 
 # "Additional timezones in /usr/share/zoneinfo"
 echo "Remember to use date -d '<time> <timezone>' for dates in the future!"
+echo "Remember to use \"TZ='America/Chicago' date\" for dates in another timezone!"
