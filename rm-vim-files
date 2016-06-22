@@ -18,8 +18,15 @@ GetOptions(
 my $path = shift;
 $path = abs_path($path) if $path;
 $path ||= cwd;
+my $shada_path = $path;
 
-if($swap) { $file_pattern = qr/\.sw[po]$/; }
+if($swap) {
+  $file_pattern = qr/\.sw[po]$/;
+  $shada_path =~ s!/!%!g;
+  my $xdg = $ENV{XDG_DATA_HOME};
+  $xdg ||= "$ENV{HOME}/.local/share";
+  $path = "$xdg/nvim/swap";
+}
 $file_pattern ||= qr/\.un~$/;
 
 find( \&d, $path );
@@ -30,6 +37,7 @@ sub d
     return unless -f $file;
     return if $file_pattern and $file !~ /$file_pattern/i;
     return if $ignore_pattern and $file =~ /$ignore_pattern/i;
+    return if $swap and $file !~ /$shada_path/i;
     if($force) {
         print "unlink ";
         unlink $file;
