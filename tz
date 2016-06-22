@@ -11,6 +11,8 @@ echo -n 'America/New_York    '
 TZ='America/New_York' date
 echo -n 'Asia/Hong_Kong      '
 TZ='Asia/Hong_Kong' date
+echo -n 'UTC                 '
+TZ='UTC' date
 
 # "Additional timezones in /usr/share/zoneinfo"
 echo "Remember to use date -d '<time> <timezone>' for dates in the future!"
