@@ -1,0 +1,6 @@
+#!/bin/bash
+
+echo -n "Chassis Vendor: "
+cat /sys/devices/virtual/dmi/id/chassis_vendor;
+echo -n "Product Name: "
+cat /sys/devices/virtual/dmi/id/product_name;

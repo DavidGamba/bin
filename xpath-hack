@@ -1,0 +1,8 @@
+#!/bin/bash
+
+file=$1
+shift
+xpath=$1
+shift
+
+sed -e "s/xmlns/ignore/" $file | xmllint --xpath $xpath -

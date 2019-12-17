@@ -1,0 +1,31 @@
+#!/bin/bash
+# https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html#verify-key-pair-fingerprints
+
+# fingerprint=$(openssl pkcs8 -in "$key" -inform PEM -outform DER -topk8 -nocrypt | openssl sha1 -c | sed -e 's/(stdin)= //')
+
+for key in "$@"; do
+	# echo $key
+	if [[ ! -f "$key" ]]; then
+		continue
+	fi
+	openssl rsa -in "$key" -noout 2>/dev/null
+	if [[ $? != 0 ]]; then
+		echo "ERROR                                                            $key"
+		continue
+	fi
+	fingerprint=$(openssl rsa -in "$key" -pubout -outform DER  2>/dev/null | openssl md5 -c)
+	if [[ $? != 0 ]]; then
+		echo "ERROR                                                            $key"
+		continue
+	fi
+	fingerprint=${fingerprint//(stdin)= /}
+	echo "md5  $fingerprint             $key"
+
+	fingerprint=$(openssl pkcs8 -in "$key" -inform PEM -outform DER -topk8 -nocrypt  2>/dev/null| openssl sha1 -c)
+	if [[ $? != 0 ]]; then
+		echo "ERROR                                                            $key"
+		continue
+	fi
+	fingerprint=${fingerprint//(stdin)= /}
+	echo "sha1 $fingerprint $key"
+done
