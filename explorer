@@ -5,6 +5,10 @@ WSL_DISTRO=Ubuntu-20.04
 file=$1
 shift
 
+if [[ $file != /* ]]; then
+	file="$PWD/$file"
+fi
+
 location="\\\\wsl\$\\$WSL_DISTRO${file//\//\\}"
 echo "$location"
 
