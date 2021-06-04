@@ -1,0 +1,10 @@
+#!/bin/bash
+
+cd ~/opt
+curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+# remove old unzipped distribution
+rm aws -rf
+
+unzip awscliv2
+./aws/install  --bin-dir ~/opt/bin/ --install-dir ~/opt/aws-cli-v2 --update
