@@ -1,19 +1,74 @@
 #!/bin/bash
+
+echo "# Pacific  (-8): CA (Los Angeles, San Francisco) WA (Seattle)"
 echo -n 'America/Los_Angeles '
 TZ='America/Los_Angeles' date
+
+echo
+echo "# Mountain (-7): CO (Denver) UT (Saltlake City)"
 echo -n 'America/Edmonton    '
 TZ='America/Edmonton' date
+
+
+echo
+echo "# Central  (-6): TX (Dallas, Houston) IL (Chicago)"
 echo -n 'America/Costa_Rica  '
 TZ='America/Costa_Rica' date
+
 echo -n 'America/Chicago     '
 TZ='America/Chicago' date
+
+echo
+echo "# Eastern  (-5): NJ (New York) MA (Boston) FL (Miami)"
+echo -n 'America/Toronto     '
+TZ='America/Toronto' date
+
 echo -n 'America/New_York    '
 TZ='America/New_York' date
-echo -n 'Asia/Hong_Kong      '
-TZ='Asia/Hong_Kong' date
+
+echo -n 'America/Bogota      '
+TZ='America/Bogota' date
+
+echo
+echo "# Europe   (UTC, +1)"
 echo -n 'UTC                 '
 TZ='UTC' date
+echo
 
+echo -n 'Europe/London       '
+TZ='Europe/London' date
+echo -n 'Europe/Madrid       '
+TZ='Europe/Madrid' date
+echo -n 'Europe/Paris        '
+TZ='Europe/Paris' date
+echo -n 'Europe/Berlin       '
+TZ='Europe/Berlin' date
+
+
+echo
+echo "# Asia     (+8): China (Shanghai, Beijing) Hong Kong"
+echo -n 'Asia/Shanghai       '
+TZ='Asia/Shanghai' date
+echo -n 'Asia/Hong_Kong      '
+TZ='Asia/Hong_Kong' date
+
+
+echo
+echo "# Asia     (+9): Japan (Tokyo)"
+echo -n 'Asia/Tokyo          '
+TZ='Asia/Tokyo' date
+
+echo
+echo "#          (+10): Sidney"
+echo -n 'Australia/Sydney    '
+TZ='Australia/Sydney' date
+
+
+echo
 # "Additional timezones in /usr/share/zoneinfo"
-echo "Remember to use date -d '<time> <timezone>' for dates in the future!"
+if [ `uname | grep Darwin` ]; then
+	echo "Remember to use gdate -d '<time> <timezone>' for dates in the future!"
+else
+	echo "Remember to use date -d '<time> <timezone>' for dates in the future!"
+fi
 echo "Remember to use \"TZ='America/Chicago' date\" for dates in another timezone!"
