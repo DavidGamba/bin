@@ -1,17 +1,17 @@
 #!/bin/bash
 
-echo "# Pacific  (-8): CA (Los Angeles, San Francisco) WA (Seattle)"
+echo "# Pacific  (-8 -7D): CA (Los Angeles, San Francisco) WA (Seattle)"
 echo -n 'America/Los_Angeles '
 TZ='America/Los_Angeles' date
 
 echo
-echo "# Mountain (-7): CO (Denver) UT (Saltlake City)"
+echo "# Mountain (-7 -6D): CO (Denver) UT (Saltlake City)"
 echo -n 'America/Edmonton    '
 TZ='America/Edmonton' date
 
 
 echo
-echo "# Central  (-6): TX (Dallas, Houston) IL (Chicago)"
+echo "# Central  (-6 -5D): TX (Dallas, Houston) IL (Chicago)"
 echo -n 'America/Costa_Rica  '
 TZ='America/Costa_Rica' date
 
@@ -19,7 +19,7 @@ echo -n 'America/Chicago     '
 TZ='America/Chicago' date
 
 echo
-echo "# Eastern  (-5): NJ (New York) MA (Boston) FL (Miami)"
+echo "# Eastern  (-5 -4D): NJ (New York) MA (Boston) FL (Miami)"
 echo -n 'America/Toronto     '
 TZ='America/Toronto' date
 
