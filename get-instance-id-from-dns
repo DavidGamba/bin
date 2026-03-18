@@ -1,0 +1,17 @@
+#!/bin/bash
+
+usage() {
+	cat <<EOF
+$(basename $0) <private_dns_name>
+EOF
+}
+
+if [ "$#" -ne 1 ]; then
+	usage
+	exit 1
+fi
+
+dns="$1"
+shift
+
+aws ec2 describe-instances --filters "Name=private-dns-name,Values=$dns" --query "Reservations[*].Instances[*].InstanceId" --output text

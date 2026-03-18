@@ -1,0 +1,20 @@
+#!/bin/bash
+
+if [ -n "$1" ]; then
+	case "$1" in
+	sem)
+		GIT_EXTERNAL_DIFF=sem-diff-wrapper git show --ext-diff ${@:2}
+		exit 0
+		;;
+	sem-diff-wrapper)
+		GIT_EXTERNAL_DIFF=$1 git show --ext-diff ${@:2}
+		exit 0
+		;;
+	difft)
+		GIT_EXTERNAL_DIFF=$1 git show --ext-diff ${@:2}
+		exit 0
+		;;
+	esac
+fi
+GIT_EXTERNAL_DIFF=sem-diff-wrapper git show --ext-diff $@
+GIT_EXTERNAL_DIFF=difft git show --ext-diff --format="" $@

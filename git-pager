@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+	echo "usage: git pager <tool> <command> [<args>]"
+	echo
+	echo "	available pagers: diffr, delta, bat, moar, sem, difft, none"
+	exit 1
+fi
+
+case "$1" in
+diffr)
+	# pager="diffr | less -R"
+	pager="diffr --colors refine-added:foreground:0,43,54:nobold:background:78,154,6 --colors refine-removed:foreground:0,43,54:nobold:background:204,0,0 | less -FRXsu --tabs=4"
+	;;
+delta)
+	# pager="delta"
+	pager="delta --side-by-side --line-numbers"
+	;;
+bat)
+	pager="bat --style=plain"
+	;;
+moar)
+	pager="moar --quit-if-one-screen -no-clear-on-exit"
+	;;
+sem)
+	GIT_EXTERNAL_DIFF=sem-diff-wrapper git ${@:2} --ext-diff
+	exit 0
+	;;
+difft)
+	GIT_EXTERNAL_DIFF=difft git ${@:2} --ext-diff
+	exit 0
+	;;
+none)
+	exec git --no-pager "${@:2}"
+	exit
+	;;
+*) pager="$1" ;;
+esac
+git -c core.pager="$pager" "${@:2}"
